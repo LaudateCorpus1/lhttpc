@@ -25,39 +25,46 @@
 %%% ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 %%% ----------------------------------------------------------------------------
 
-%%% @author Oscar Hellström <oscar@hellstrom.st>
+%%% @author Oscar Hellstrom <oscar@hellstrom.st>
 %%% @doc Main interface to the lightweight http client.
 %%% See {@link request/4}, {@link request/5} and {@link request/6} functions.
 %%% @end
 -module(lhttpc).
+
 -behaviour(application).
 
 %% this is the API module; xref ignore all exports
--ignore_xref(
-   [start/0, stop/0, start/2, stop/1,
-    lb_status/0,
-    request/4, request/5, request/6, request/9,
-    send_body_part/2, send_body_part/3,
-    send_trailers/2, send_trailers/3,
-    get_body_part/1, get_body_part/2]).
+-ignore_xref([start/0,
+              stop/0,
+              start/2,
+              stop/1,
+              lb_status/0,
+              request/4,
+              request/5,
+              request/6,
+              request/9,
+              send_body_part/2,
+              send_body_part/3,
+              send_trailers/2,
+              send_trailers/3,
+              get_body_part/1,
+              get_body_part/2]).
 
--export(
-   [start/0, stop/0, start/2, stop/1,
-    lb_status/0,
-    request/4, request/5, request/6, request/9,
-    send_body_part/2, send_body_part/3,
-    send_trailers/2, send_trailers/3,
-    get_body_part/1, get_body_part/2]).
+-export([start/0, stop/0, start/2, stop/1, lb_status/0, request/4, request/5, request/6,
+         request/9, send_body_part/2, send_body_part/3, send_trailers/2, send_trailers/3,
+         get_body_part/1, get_body_part/2]).
 
 -include("lhttpc_types.hrl").
 
--type result() :: {ok, {{pos_integer(), string()}, headers(), binary()}} |
-                  {error, atom()}.
+-type result() ::
+    {ok, {{pos_integer(), string()}, headers(), binary()}} | {error, atom()}.
 
 %% @hidden
 -spec start(any(), any()) -> {ok, pid()}.
-start(_, Opts) when is_list(Opts) -> lhttpc_sup:start_link(Opts);
-start(_,_) -> lhttpc_sup:start_link().
+start(_, Opts) when is_list(Opts) ->
+    lhttpc_sup:start_link(Opts);
+start(_, _) ->
+    lhttpc_sup:start_link().
 
 %% @hidden
 -spec stop(any()) -> ok.
@@ -147,8 +154,7 @@ request(URL, Method, Hdrs, Timeout) ->
 %% `request(URL, Method, Hdrs, Body, Timeout, [])'.
 %% @end
 %% @see request/9
--spec request(string(), string() | atom(), headers(), iolist(),
-        timeout()) -> result().
+-spec request(string(), string() | atom(), headers(), iolist(), timeout()) -> result().
 request(URL, Method, Hdrs, Body, Timeout) ->
     request(URL, Method, Hdrs, Body, Timeout, []).
 
@@ -190,8 +196,8 @@ request(URL, Method, Hdrs, Body, Timeout) ->
 %% `scheme://host[:port][/path]'.
 %% @end
 %% @see request/9
--spec request(string(), string() | atom(), headers(), iolist(),
-        timeout(), [option()]) -> result().
+-spec request(string(), string() | atom(), headers(), iolist(), timeout(), [option()]) ->
+                 result().
 request(URL, Method, Hdrs, Body, Timeout, Options) ->
     {Host, Port, Path, Ssl} = lhttpc_lib:parse_url(URL),
     request(Host, Port, Ssl, Path, Method, Hdrs, Body, Timeout, Options).
@@ -330,23 +336,32 @@ request(URL, Method, Hdrs, Body, Timeout, Options) ->
 %% {@link get_body_part/2} can be used to read body parts in the calling
 %% process.
 %% @end
--spec request(string(), 1..65535, true | false, string(), atom() | string(),
-    headers(), iolist(), timeout(), [option()]) -> result().
+-spec request(string(),
+              1..65535,
+              true | false,
+              string(),
+              atom() | string(),
+              headers(),
+              iolist(),
+              timeout(),
+              [option()]) ->
+                 result().
 request(Host, Port, Ssl, Path, Method, Hdrs, Body, Timeout, Options) ->
     ok = verify_options(Options),
     ReqId = make_ref(),
+    BaseArgs = [Host, Port, Ssl, Path, Method, Hdrs, Body, Options],
     case proplists:is_defined(stream_to, Options) of
         true ->
             StreamTo = proplists:get_value(stream_to, Options),
-            Args = [ReqId, StreamTo, Host, Port, Ssl, Path, Method, Hdrs, Body, Options],
+            Args = [ReqId, StreamTo | BaseArgs],
             Pid = spawn(lhttpc_client, request, Args),
             spawn(fun() ->
-                R = kill_client_after(Pid, Timeout),
-                StreamTo ! {response, ReqId, Pid, R}
-            end),
+                     R = kill_client_after(Pid, Timeout),
+                     StreamTo ! {response, ReqId, Pid, R}
+                  end),
             {ReqId, Pid};
         false ->
-            Args = [ReqId, self(), Host, Port, Ssl, Path, Method, Hdrs, Body, Options],
+            Args = [ReqId, self() | BaseArgs],
             Pid = spawn_link(lhttpc_client, request, Args),
             receive
                 {response, ReqId, Pid, R} ->
@@ -362,7 +377,7 @@ request(Host, Port, Ssl, Path, Method, Hdrs, Body, Timeout, Options) ->
                     % sent to it. Very unlikely though
                     exit(Reason)
             after Timeout ->
-                    kill_client(Pid)
+                kill_client(Pid)
             end
     end.
 
@@ -379,7 +394,7 @@ request(Host, Port, Ssl, Path, Method, Hdrs, Body, Timeout, Options) ->
 %% `send_body_part(UploadState, BodyPart, infinity)'.
 %% @end
 -spec send_body_part({pid(), window_size()}, iolist()) ->
-        {pid(), window_size()} | result().
+                        {pid(), window_size()} | result().
 send_body_part({Pid, Window}, IoList) ->
     send_body_part({Pid, Window}, IoList, infinity).
 
@@ -405,7 +420,7 @@ send_body_part({Pid, Window}, IoList) ->
 %% canceled and `{error, timeout}' is returned.
 %% @end
 -spec send_body_part({pid(), window_size()}, iolist(), timeout()) ->
-        {ok, {pid(), window_size()}} | result().
+                        {ok, {pid(), window_size()}} | result().
 send_body_part({Pid, _Window}, http_eob, Timeout) when is_pid(Pid) ->
     Pid ! {body_part, self(), http_eob},
     read_response(Pid, Timeout);
@@ -423,7 +438,7 @@ send_body_part({Pid, 0}, IoList, Timeout) when is_pid(Pid) ->
         kill_client(Pid)
     end;
 send_body_part({Pid, Window}, IoList, _Timeout) when Window > 0, is_pid(Pid) ->
-                                                     % atom > 0 =:= true
+    % atom > 0 =:= true
     Pid ! {body_part, self(), IoList},
     receive
         {ack, Pid} ->
@@ -475,10 +490,8 @@ send_trailers({Pid, Window}, Trailers) ->
 %% `Timeout' milliseconds the request is canceled and `{error, timeout}' is
 %% returned.
 %% @end
--spec send_trailers({pid(), window_size()}, headers(), timeout()) ->
-                       result().
-send_trailers({Pid, _Window}, Trailers, Timeout)
-        when is_list(Trailers), is_pid(Pid) ->
+-spec send_trailers({pid(), window_size()}, headers(), timeout()) -> result().
+send_trailers({Pid, _Window}, Trailers, Timeout) when is_list(Trailers), is_pid(Pid) ->
     Pid ! {trailers, self(), Trailers},
     read_response(Pid, Timeout).
 
@@ -511,8 +524,7 @@ get_body_part(Pid) ->
 %% `http_eob' marks the end of the body. If there were Trailers in the
 %% response those are returned with `http_eob' as well.
 %% @end
--spec get_body_part(pid(), timeout()) ->
-        {ok, binary()} | {ok, {http_eob, headers()}}.
+-spec get_body_part(pid(), timeout()) -> {ok, binary()} | {ok, {http_eob, headers()}}.
 get_body_part(Pid, Timeout) ->
     receive
         {body_part, Pid, Bin} ->
@@ -551,21 +563,22 @@ kill_client(Pid) ->
             R;
         {'DOWN', _, process, Pid, timeout} ->
             {error, timeout};
-        {'DOWN', _, process, Pid, Reason}  ->
+        {'DOWN', _, process, Pid, Reason} ->
             erlang:error(Reason)
     end.
 
 kill_client_after(Pid, Timeout) ->
     erlang:monitor(process, Pid),
     receive
-        {'DOWN', _, process, Pid, _Reason} -> exit(normal)
+        {'DOWN', _, process, Pid, _Reason} ->
+            exit(normal)
     after Timeout ->
         catch unlink(Pid), % or we'll kill ourself :O
         exit(Pid, timeout),
         receive
             {'DOWN', _, process, Pid, timeout} ->
                 {error, timeout};
-            {'DOWN', _, process, Pid, Reason}  ->
+            {'DOWN', _, process, Pid, Reason} ->
                 erlang:error(Reason)
         after 1000 ->
             exit(normal) % silent failure!
@@ -574,33 +587,32 @@ kill_client_after(Pid, Timeout) ->
 
 verify_options(Opts) ->
     case verify_options(Opts, []) of
-        []   -> ok;
-        Errs -> error({bad_options,Errs})
+        [] ->
+            ok;
+        Errs ->
+            error({bad_options, Errs})
     end.
 
-verify_options([{send_retry, N} | Options], Errors)
-        when is_integer(N), N >= 0 ->
+verify_options([{send_retry, N} | Options], Errors) when is_integer(N), N >= 0 ->
     verify_options(Options, Errors);
 verify_options([{connect_timeout, infinity} | Options], Errors) ->
     verify_options(Options, Errors);
-verify_options([{connect_timeout, MS} | Options], Errors)
-        when is_integer(MS), MS >= 0 ->
+verify_options([{connect_timeout, MS} | Options], Errors) when is_integer(MS), MS >= 0 ->
     verify_options(Options, Errors);
 verify_options([{connection_timeout, infinity} | Options], Errors) ->
     verify_options(Options, Errors);
 verify_options([{connection_timeout, MS} | Options], Errors)
-        when is_integer(MS), MS >= 0 ->
+    when is_integer(MS), MS >= 0 ->
     verify_options(Options, Errors);
-verify_options([{max_connections, N} | Options], Errors)
-        when is_integer(N), N > 0 ->
+verify_options([{max_connections, N} | Options], Errors) when is_integer(N), N > 0 ->
     verify_options(Options, Errors);
 verify_options([{partial_upload, WindowSize} | Options], Errors)
-        when is_integer(WindowSize), WindowSize >= 0 ->
+    when is_integer(WindowSize), WindowSize >= 0 ->
     verify_options(Options, Errors);
-verify_options([{partial_upload, infinity} | Options], Errors)  ->
+verify_options([{partial_upload, infinity} | Options], Errors) ->
     verify_options(Options, Errors);
 verify_options([{partial_download, DownloadOptions} | Options], Errors)
-        when is_list(DownloadOptions) ->
+    when is_list(DownloadOptions) ->
     case verify_partial_download(DownloadOptions, []) of
         [] ->
             verify_options(Options, Errors);
@@ -608,8 +620,7 @@ verify_options([{partial_download, DownloadOptions} | Options], Errors)
             NewErrors = [{partial_download, OptionErrors} | Errors],
             verify_options(Options, NewErrors)
     end;
-verify_options([{connect_options, List} | Options], Errors)
-        when is_list(List) ->
+verify_options([{connect_options, List} | Options], Errors) when is_list(List) ->
     verify_options(Options, Errors);
 verify_options([{stream_to, Pid} | Options], Errors) when is_pid(Pid) ->
     verify_options(Options, Errors);
@@ -618,13 +629,13 @@ verify_options([Option | Options], Errors) ->
 verify_options([], Errors) ->
     Errors.
 
-verify_partial_download([{window_size, infinity} | Options], Errors)->
+verify_partial_download([{window_size, infinity} | Options], Errors) ->
     verify_partial_download(Options, Errors);
-verify_partial_download([{window_size, Size} | Options], Errors) when
-        is_integer(Size), Size >= 0 ->
+verify_partial_download([{window_size, Size} | Options], Errors)
+    when is_integer(Size), Size >= 0 ->
     verify_partial_download(Options, Errors);
-verify_partial_download([{part_size, Size} | Options], Errors) when
-        is_integer(Size), Size >= 0 ->
+verify_partial_download([{part_size, Size} | Options], Errors)
+    when is_integer(Size), Size >= 0 ->
     verify_partial_download(Options, Errors);
 verify_partial_download([{part_size, infinity} | Options], Errors) ->
     verify_partial_download(Options, Errors);

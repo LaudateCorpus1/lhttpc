@@ -25,16 +25,16 @@
 %%% ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 %%% ----------------------------------------------------------------------------
 
-%%% @author Oscar Hellström <oscar@hellstrom.st>
+%%% @author Oscar Hellstrom <oscar@hellstrom.st>
 %%% @doc This is the specification for the lhttpc application.
 %%% @end
-{application, lhttpc,
-    [{description, "Lightweight HTTP Client"},
-        {vsn, "1.2.9"},
-        {modules, [lhttpc,lhttpc_sup,lhttpc_client,lhttpc_sock,lhttp_lb]},
-        {registered, [lhttpc_sup]},
-        {applications, [kernel, stdlib, ssl, crypto]},
+{application,
+ lhttpc,
+ [{description, "Lightweight HTTP Client"},
+  {vsn, "1.2.9"},
+  {modules, [lhttpc, lhttpc_sup, lhttpc_client, lhttpc_sock, lhttp_lb]},
+  {registered, [lhttpc_sup]},
+  {applications, [kernel, stdlib, ssl, crypto]},
   {mod, {lhttpc, []}},
-  {env, [{connection_timeout, 300000}]}
- ]}.
-
+  {env, [{connection_timeout, 300000}]},
+  {license, "MIT"}]}.
