@@ -99,10 +99,6 @@ start() ->
 stop() ->
     application:stop(lhttpc).
 
-%% @spec () -> [TaggedTuples].
-%%   TaggedTuples = [{Key,Value}]
-%%   Key = atom()
-%%   Value = term()
 %% @doc
 %% The load balancer will start an instance for each connection.
 %% This function returns information about each load balancer instance,
