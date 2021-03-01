@@ -1,7 +1,7 @@
 %%% ----------------------------------------------------------------------------
 %%% Copyright (c) 2009, Erlang Training and Consulting Ltd.
 %%% All rights reserved.
-%%% 
+%%%
 %%% Redistribution and use in source and binary forms, with or without
 %%% modification, are permitted provided that the following conditions are met:
 %%%    * Redistributions of source code must retain the above copyright
@@ -12,7 +12,7 @@
 %%%    * Neither the name of Erlang Training and Consulting Ltd. nor the
 %%%      names of its contributors may be used to endorse or promote products
 %%%      derived from this software without specific prior written permission.
-%%% 
+%%%
 %%% THIS SOFTWARE IS PROVIDED BY Erlang Training and Consulting Ltd. ''AS IS''
 %%% AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 %%% IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -24,11 +24,13 @@
 %%% ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 %%% ----------------------------------------------------------------------------
 
-%%% @author Oscar Hellström <oscar@hellstrom.st>
+%%% @author Oscar HellstrÃ¶m <oscar@hellstrom.st>
 %%% @author Magnus Henoch <magnus@erlang-consulting.com>
 %%% @doc Simple web server for testing purposes
 %%% @end
 -module(webserver).
+
+-elvis([{elvis_style, invalid_dynamic_call, disable}]).
 
 -export([start/2, read_chunked/3]).
 -export([accept_connection/4]).
@@ -56,12 +58,11 @@ read_chunks(Module, Socket, Acc) ->
     case Module:recv(Socket, 0) of
         {ok, HexSizeExtension} ->
             case chunk_size(HexSizeExtension, []) of
-                0 -> 
+                0 ->
                     list_to_binary(lists:reverse(Acc));
                 Size ->
                     setopts(Module, Socket, [{packet, raw}]),
-                    {ok, <<Chunk:Size/binary, "\r\n">>} =
-                        Module:recv(Socket, Size + 2),
+                    {ok, <<Chunk:Size/binary, "\r\n">>} = Module:recv(Socket, Size + 2),
                     read_chunks(Module, Socket, [Chunk | Acc])
             end;
         {error, Reason} ->
@@ -76,7 +77,8 @@ read_trailers(Module, Socket, Hdrs) ->
         {ok, {http_header, _, Name, _, Value}} when is_list(Name) ->
             Trailer = {Name, Value},
             read_trailers(Module, Socket, [Trailer | Hdrs]);
-        {ok, http_eoh} -> Hdrs
+        {ok, http_eoh} ->
+            Hdrs
     end.
 
 server_loop(Module, Socket, _, _, []) ->
@@ -92,18 +94,19 @@ server_loop(Module, Socket, Request, Headers, Responders) ->
             NewHeaders = [{Field, Value} | Headers],
             server_loop(Module, Socket, Request, NewHeaders, Responders);
         {ok, http_eoh} ->
-            RequestBody = case proplists:get_value("Content-Length", Headers) of
-                undefined ->
-                    <<>>;
-                "0" ->
-                    <<>>;
-                SLength ->
-                    Length = list_to_integer(SLength),
-                    setopts(Module, Socket, [{packet, raw}]),
-                    {ok, Body} = Module:recv(Socket, Length),
-                    setopts(Module, Socket, [{packet, http}]),
-                    Body
-            end,
+            RequestBody =
+                case proplists:get_value("Content-Length", Headers) of
+                    undefined ->
+                        <<>>;
+                    "0" ->
+                        <<>>;
+                    SLength ->
+                        Length = list_to_integer(SLength),
+                        setopts(Module, Socket, [{packet, raw}]),
+                        {ok, Body} = Module:recv(Socket, Length),
+                        setopts(Module, Socket, [{packet, http}]),
+                        Body
+                end,
             Responder = hd(Responders),
             Responder(Module, Socket, Request, Headers, RequestBody),
             server_loop(Module, Socket, none, [], tl(Responders));
@@ -112,30 +115,25 @@ server_loop(Module, Socket, Request, Headers, Responders) ->
     end.
 
 listen(ssl) ->
-    Opts = [
-        {packet, http},
-        binary,
-        {active, false},
-        {ip, {127,0,0,1}},
-        {verify,0},
-        {keyfile, "../test/key.pem"},
-        {certfile, "../test/crt.pem"}
-    ],
+    Opts =
+        [{packet, http},
+         binary,
+         {active, false},
+         {ip, {127, 0, 0, 1}},
+         {verify, 0},
+         {keyfile, code:lib_dir(lhttpc, 'test/key.pem')},
+         {certfile, code:lib_dir(lhttpc, 'test/crt.pem')}],
     {ok, LS} = ssl:listen(0, Opts),
     LS;
 listen(Module) ->
-    {ok, LS} = Module:listen(0, [
-            {packet, http},
-            binary,
-            {active, false},
-            {ip, {127,0,0,1}}
-        ]),
+    {ok, LS} =
+        Module:listen(0, [{packet, http}, binary, {active, false}, {ip, {127, 0, 0, 1}}]),
     LS.
 
 accept(ssl, ListenSocket) ->
     {ok, Socket} = ssl:transport_accept(ListenSocket, 10000),
-    ok = ssl:ssl_accept(Socket),
-    Socket;
+    {ok, NewSocket} = ssl:handshake(Socket),
+    NewSocket;
 accept(Module, ListenSocket) ->
     {ok, Socket} = Module:accept(ListenSocket, 1000),
     Socket.
@@ -153,8 +151,10 @@ port(_, Socket) ->
     Port.
 
 chunk_size(<<$;, _/binary>>, Acc) ->
-    erlang:list_to_integer(lists:reverse(Acc), 16);
+    erlang:list_to_integer(
+        lists:reverse(Acc), 16);
 chunk_size(<<"\r\n">>, Acc) ->
-    erlang:list_to_integer(lists:reverse(Acc), 16);
+    erlang:list_to_integer(
+        lists:reverse(Acc), 16);
 chunk_size(<<Char, Rest/binary>>, Acc) ->
     chunk_size(Rest, [Char | Acc]).

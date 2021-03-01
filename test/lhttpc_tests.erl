@@ -24,8 +24,12 @@
 %%% ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 %%% ----------------------------------------------------------------------------
 
-%%% @author Oscar Hellström <oscar@hellstrom.st>
+%%% @author Oscar Hellstrom <oscar@hellstrom.st>
 -module(lhttpc_tests).
+
+%% Macros in binary constructions.
+-format ignore.
+-elvis ignore.
 
 -export([test_no/2]).
 -import(webserver, [start/2]).
@@ -318,7 +322,7 @@ simple_put() ->
 post() ->
     Port = start(gen_tcp, [fun copy_body/5]),
     URL = url(Port, "/post"),
-    {X, Y, Z} = now(),
+    {X, Y, Z} = os:timestamp(),
     Body = [
         "This is a rather simple post :)",
         integer_to_list(X),
@@ -334,7 +338,7 @@ post() ->
 post_100_continue() ->
     Port = start(gen_tcp, [fun copy_body_100_continue/5]),
     URL = url(Port, "/post"),
-    {X, Y, Z} = now(),
+    {X, Y, Z} = os:timestamp(),
     Body = [
         "This is a rather simple post :)",
         integer_to_list(X),

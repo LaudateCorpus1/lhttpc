@@ -26,21 +26,13 @@
 %%% ----------------------------------------------------------------------------
 
 %%% @private
-%%% @author Oscar Hellström <oscar@hellstrom.st>
+%%% @author Oscar Hellstrom <oscar@hellstrom.st>
 %%% @doc
 %%% This module implements wrappers for socket operations.
 %%% Makes it possible to have the same interface to ssl and tcp sockets.
 -module(lhttpc_sock).
 
--export([
-        connect/5,
-        recv/2,
-        recv/3,
-        send/3,
-        controlling_process/3,
-        setopts/3,
-        close/2
-    ]).
+-export([connect/5, recv/2, recv/3, send/3, controlling_process/3, setopts/3, close/2]).
 
 -include("lhttpc_types.hrl").
 
@@ -58,27 +50,29 @@
 %% `Options' are the normal `gen_tcp' or `ssl' Options.
 %% @end
 -spec connect(host(), integer(), socket_options(), timeout(), boolean()) ->
-    {ok, socket()} | {error, atom()}.
+                 {ok, socket()} | {error, atom()}.
 connect(Host, Port, Options, Timeout, true) ->
     % Avoid port leak with potential race condition in case of timeout
     Flag = process_flag(trap_exit, true),
     Res = ssl:connect(Host, Port, Options, Timeout),
     receive
-          {'EXIT',_Pid,timeout} -> exit(timeout)
-        after 0 ->
-                process_flag(trap_exit, Flag),
-                Res
-        end;
+        {'EXIT', _Pid, timeout} ->
+            exit(timeout)
+    after 0 ->
+        process_flag(trap_exit, Flag),
+        Res
+    end;
 connect(Host, Port, Options, Timeout, false) ->
     % Avoid port leak with potential race condition in case of timeout
     Flag = process_flag(trap_exit, true),
     Res = gen_tcp:connect(Host, Port, Options, Timeout),
     receive
-          {'EXIT',_Pid,timeout} -> exit(timeout)
-        after 0 ->
-                process_flag(trap_exit, Flag),
-                Res
-        end.
+        {'EXIT', _Pid, timeout} ->
+            exit(timeout)
+    after 0 ->
+        process_flag(trap_exit, Flag),
+        Res
+    end.
 
 %% @spec (Socket, SslFlag) -> {ok, Data} | {error, Reason}
 %%   Socket = socket()
@@ -92,7 +86,7 @@ connect(Host, Port, Options, Timeout, false) ->
 %% packet.
 %% @end
 -spec recv(socket(), boolean()) ->
-    {ok, any()} | {error, atom()} | {error, {http_error, string()}}.
+              {ok, any()} | {error, atom()} | {error, {http_error, string()}}.
 recv(Socket, true) ->
     ssl:recv(Socket, 0);
 recv(Socket, false) ->
@@ -140,8 +134,7 @@ send(Socket, Request, false) ->
 %% @doc
 %% Sets the controlling proces for the `Socket'.
 %% @end
--spec controlling_process(socket(), pid(), boolean()) ->
-    ok | {error, atom()}.
+-spec controlling_process(socket(), pid(), boolean()) -> ok | {error, atom()}.
 controlling_process(Socket, Pid, true) ->
     ssl:controlling_process(Socket, Pid);
 controlling_process(Socket, Pid, false) ->
@@ -155,8 +148,7 @@ controlling_process(Socket, Pid, false) ->
 %% @doc
 %% Sets options for a socket. Look in `inet:setopts/2' for more info.
 %% @end
--spec setopts(socket(), socket_options(), boolean()) ->
-    ok | {error, atom()}.
+-spec setopts(socket(), socket_options(), boolean()) -> ok | {error, atom()}.
 setopts(Socket, Options, true) ->
     ssl:setopts(Socket, Options);
 setopts(Socket, Options, false) ->
@@ -175,18 +167,20 @@ close(Socket, true) ->
     Flag = process_flag(trap_exit, true),
     Res = ssl:close(Socket),
     receive
-        {'EXIT',_Pid,timeout} -> exit(timeout)
+        {'EXIT', _Pid, timeout} ->
+            exit(timeout)
     after 0 ->
-            process_flag(trap_exit, Flag),
-            Res
+        process_flag(trap_exit, Flag),
+        Res
     end;
 close(Socket, false) ->
     % Avoid port leak with potential race condition in case of timeout
     Flag = process_flag(trap_exit, true),
     Res = gen_tcp:close(Socket),
     receive
-        {'EXIT',_Pid,timeout} -> exit(timeout)
+        {'EXIT', _Pid, timeout} ->
+            exit(timeout)
     after 0 ->
-            process_flag(trap_exit, Flag),
-            Res
+        process_flag(trap_exit, Flag),
+        Res
     end.

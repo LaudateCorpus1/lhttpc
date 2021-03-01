@@ -26,20 +26,14 @@
 %%% ----------------------------------------------------------------------------
 
 %%% @private
-%%% @author Oscar Hellström <oscar@hellstrom.st>
+%%% @author Oscar Hellstrom <oscar@hellstrom.st>
 %%% @doc
 %%% This module implements various library functions used in lhttpc.
 -module(lhttpc_lib).
 
--export([
-        parse_url/1,
-        format_request/7,
-        header_value/2,
-        header_value/3,
-        normalize_method/1
-    ]).
+-export([parse_url/1, format_request/7, header_value/2, header_value/3,
+         normalize_method/1]).
 -export([maybe_atom_to_list/1]).
-
 -export([format_hdrs/1, dec/1]).
 
 -include("lhttpc_types.hrl").
@@ -67,14 +61,17 @@ header_value(Hdr, Hdrs) ->
 %% `Header' must be a lowercase string, since every header is mangled to
 %% check the match.  If no match is found, `Default' is returned.
 %% @end
--spec header_value(string(), [{string(), Value}], Default) ->
-    Default | Value.
+-spec header_value(string(), [{string(), Value}], Default) -> Default | Value.
 header_value(Hdr, [{Hdr, Value} | _], _) ->
     Value;
-header_value(Hdr, [{ThisHdr, Value}| Hdrs], Default) ->
-    case string:equal(string:to_lower(ThisHdr), Hdr) of
-        true  -> Value;
-        false -> header_value(Hdr, Hdrs, Default)
+header_value(Hdr, [{ThisHdr, Value} | Hdrs], Default) ->
+    case string:equal(
+             string:to_lower(ThisHdr), Hdr)
+    of
+        true ->
+            Value;
+        false ->
+            header_value(Hdr, Hdrs, Default)
     end;
 header_value(_, [], Default) ->
     Default.
@@ -131,7 +128,7 @@ split_port(https, [], []) ->
     {443, "/"};
 split_port(_, [], Port) ->
     {list_to_integer(lists:reverse(Port)), "/"};
-split_port(_,[$/ | _] = Path, Port) ->
+split_port(_, [$/ | _] = Path, Port) ->
     {list_to_integer(lists:reverse(Port)), Path};
 split_port(Scheme, [P | T], Port) ->
     split_port(Scheme, T, [P | Port]).
@@ -144,19 +141,19 @@ split_port(Scheme, [P | T], Port) ->
 %% Port = integer()
 %% Body = iolist()
 %% PartialUpload = true | false
--spec format_request(iolist(), atom() | string(), headers(), string(),
-    integer(), iolist(), true | false ) -> {true | false, iolist()}.
+-spec format_request(iolist(),
+                     atom() | string(),
+                     headers(),
+                     string(),
+                     integer(),
+                     iolist(),
+                     true | false) ->
+                        {true | false, iolist()}.
 format_request(Path, Method, Hdrs, Host, Port, Body, PartialUpload) ->
     AllHdrs = add_mandatory_hdrs(Method, Hdrs, Host, Port, Body, PartialUpload),
     IsChunked = is_chunked(AllHdrs),
-    {
-        IsChunked,
-        [
-            Method, " ", Path, " HTTP/1.1\r\n",
-            format_hdrs(AllHdrs),
-            format_body(Body, IsChunked)
-        ]
-    }.
+    {IsChunked,
+     [Method, " ", Path, " HTTP/1.1\r\n", format_hdrs(AllHdrs), format_body(Body, IsChunked)]}.
 
 %% @spec normalize_method(AtomOrString) -> Method
 %%   AtomOrString = atom() | string()
@@ -176,9 +173,7 @@ format_hdrs(Headers) ->
     format_hdrs(Headers, []).
 
 format_hdrs([{Hdr, Value} | T], Acc) ->
-    NewAcc = [
-        maybe_atom_to_list(Hdr), ": ", maybe_atom_to_list(Value), "\r\n" | Acc
-    ],
+    NewAcc = [maybe_atom_to_list(Hdr), ": ", maybe_atom_to_list(Value), "\r\n" | Acc],
     format_hdrs(T, NewAcc);
 format_hdrs([], Acc) ->
     [Acc, "\r\n"].
@@ -190,10 +185,7 @@ format_body(Body, true) ->
         0 ->
             <<>>;
         Size ->
-            [
-                erlang:integer_to_list(Size, 16), <<"\r\n">>,
-                Body, <<"\r\n">>
-            ]
+            [erlang:integer_to_list(Size, 16), <<"\r\n">>, Body, <<"\r\n">>]
     end.
 
 add_mandatory_hdrs(Method, Hdrs, Host, Port, Body, PartialUpload) ->
@@ -216,14 +208,15 @@ add_content_headers(Hdrs, Body, false) ->
             Hdrs
     end;
 add_content_headers(Hdrs, _Body, true) ->
-    case {header_value("content-length", Hdrs),
-         header_value("transfer-encoding", Hdrs)} of
+    case {header_value("content-length", Hdrs), header_value("transfer-encoding", Hdrs)} of
         {undefined, undefined} ->
             [{"Transfer-Encoding", "chunked"} | Hdrs];
         {undefined, TransferEncoding} ->
             case string:to_lower(TransferEncoding) of
-            "chunked" -> Hdrs;
-            _ -> erlang:error({error, unsupported_transfer_encoding})
+                "chunked" ->
+                    Hdrs;
+                _ ->
+                    erlang:error({error, unsupported_transfer_encoding})
             end;
         {_Length, undefined} ->
             Hdrs;
@@ -234,22 +227,27 @@ add_content_headers(Hdrs, _Body, true) ->
 add_host(Hdrs, Host, Port) ->
     case header_value("host", Hdrs) of
         undefined ->
-            [{"Host", host(Host, Port) } | Hdrs];
+            [{"Host", host(Host, Port)} | Hdrs];
         _ -> % We have a host
             Hdrs
     end.
 
 is_chunked(Hdrs) ->
-    TransferEncoding = string:to_lower(
-        header_value("transfer-encoding", Hdrs, "undefined")),
+    TransferEncoding = string:to_lower(header_value("transfer-encoding", Hdrs, "undefined")),
     case TransferEncoding of
-        "chunked" -> true;
-        _ -> false
+        "chunked" ->
+            true;
+        _ ->
+            false
     end.
 
 -spec dec(timeout()) -> timeout().
-dec(Num) when is_integer(Num) -> Num - 1;
-dec(Else)                     -> Else.
+dec(Num) when is_integer(Num) ->
+    Num - 1;
+dec(Else) ->
+    Else.
 
-host(Host, 80)   -> Host;
-host(Host, Port) -> [Host, $:, integer_to_list(Port)].
+host(Host, 80) ->
+    Host;
+host(Host, Port) ->
+    [Host, $:, integer_to_list(Port)].

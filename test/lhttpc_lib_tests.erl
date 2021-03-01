@@ -1,7 +1,7 @@
 %%% ----------------------------------------------------------------------------
 %%% Copyright (c) 2009, Erlang Training and Consulting Ltd.
 %%% All rights reserved.
-%%% 
+%%%
 %%% Redistribution and use in source and binary forms, with or without
 %%% modification, are permitted provided that the following conditions are met:
 %%%    * Redistributions of source code must retain the above copyright
@@ -12,7 +12,7 @@
 %%%    * Neither the name of Erlang Training and Consulting Ltd. nor the
 %%%      names of its contributors may be used to endorse or promote products
 %%%      derived from this software without specific prior written permission.
-%%% 
+%%%
 %%% THIS SOFTWARE IS PROVIDED BY Erlang Training and Consulting Ltd. ''AS IS''
 %%% AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 %%% IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -24,27 +24,18 @@
 %%% ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 %%% ----------------------------------------------------------------------------
 
-%%% @author Oscar Hellström <oscar@hellstrom.st>
+%%% @author Oscar HellstrÃ¶m <oscar@hellstrom.st>
 -module(lhttpc_lib_tests).
 
 -include_lib("eunit/include/eunit.hrl").
 
 parse_url_test_() ->
-    [
-        ?_assertEqual({"host", 80, "/", false},
-            lhttpc_lib:parse_url("http://host")),
-        ?_assertEqual({"host", 80, "/", false},
-            lhttpc_lib:parse_url("http://host/")),
-        ?_assertEqual({"host", 443, "/", true},
-            lhttpc_lib:parse_url("https://host")),
-        ?_assertEqual({"host", 443, "/", true},
-            lhttpc_lib:parse_url("https://host/")),
-        ?_assertEqual({"host", 180, "/", false},
-            lhttpc_lib:parse_url("http://host:180")),
-        ?_assertEqual({"host", 180, "/", false},
-            lhttpc_lib:parse_url("http://host:180/")),
-        ?_assertEqual({"host", 180, "/foo", false},
-            lhttpc_lib:parse_url("http://host:180/foo")),
-        ?_assertEqual({"host", 180, "/foo/bar", false},
-            lhttpc_lib:parse_url("http://host:180/foo/bar"))
-    ].
+    [?_assertEqual({"host", 80, "/", false}, lhttpc_lib:parse_url("http://host")),
+     ?_assertEqual({"host", 80, "/", false}, lhttpc_lib:parse_url("http://host/")),
+     ?_assertEqual({"host", 443, "/", true}, lhttpc_lib:parse_url("https://host")),
+     ?_assertEqual({"host", 443, "/", true}, lhttpc_lib:parse_url("https://host/")),
+     ?_assertEqual({"host", 180, "/", false}, lhttpc_lib:parse_url("http://host:180")),
+     ?_assertEqual({"host", 180, "/", false}, lhttpc_lib:parse_url("http://host:180/")),
+     ?_assertEqual({"host", 180, "/foo", false}, lhttpc_lib:parse_url("http://host:180/foo")),
+     ?_assertEqual({"host", 180, "/foo/bar", false},
+                   lhttpc_lib:parse_url("http://host:180/foo/bar"))].
