@@ -37,4 +37,5 @@
   {applications, [kernel, stdlib, ssl, crypto]},
   {mod, {lhttpc, []}},
   {env, [{connection_timeout, 300000}]},
+  {pkg_name, nextroll_lhttpc},
   {license, "MIT"}]}.
